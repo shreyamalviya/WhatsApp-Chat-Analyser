@@ -98,5 +98,35 @@ plt.ylabel('Authors')
 #%%
 # Time of the day when group is most active
 messages_df['Time'].value_counts().head(5).plot.barh()
-plt.xlabel('Number of messages')
+plt.xlabel('Number of Messages')
 plt.ylabel('Time')
+
+#%%
+# Sentiment analysis of messages
+from nltk.sentiment.vader import SentimentIntensityAnalyzer 
+sid = SentimentIntensityAnalyzer()
+
+overallSentiments = []
+compoundScores = []
+for msg in messages_df['Message']:
+    ss = sid.polarity_scores(msg)
+    compoundScores.append(round(ss['compound'], 5))
+    # we'll compare the compound score only - https://github.com/cjhutto/vaderSentiment#about-the-scoring
+    if ss['compound'] >= 0.05:
+        feel = 'Positive'
+    elif ss['compound'] > -0.05 and ss['compound'] < 0.05:
+        feel = 'Neutral'
+    elif ss['compound'] < -0.05:
+        feel = 'Negative'
+    overallSentiments.append(feel)
+    
+messages_df = messages_df.assign(Compound_Scores = compoundScores,
+                                 Overall_Sentiment = overallSentiments)
+
+total_sentiment_count_grouped_by_author = messages_df[['Author', 'Compound_Scores']].groupby('Author').sum()
+total_messages_count_grouped_by_author = messages_df['Author'].value_counts()
+average_user_sentiment = total_sentiment_count_grouped_by_author['Compound_Scores']/total_messages_count_grouped_by_author
+total_sentiment_count_grouped_by_author = total_sentiment_count_grouped_by_author.assign(Average_User_Sentiment = average_user_sentiment)
+average_user_sentiment.plot.barh()
+plt.xlabel('Average Sentiment of Sent Messages')
+plt.ylabel('Authors')
